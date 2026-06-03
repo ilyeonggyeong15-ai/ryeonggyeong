@@ -8,7 +8,7 @@ const MainScreen = ({ onSelectRestaurant }) => {
   const [selectedCategory, setSelectedCategory] = useState('');
   const [sortBy, setSortBy] = useState('distance'); // 'distance', 'reviews', 'price'
 
-  const categories = ['전체', '한식', '일식', '중식', '분식', '양식', '야식'];
+  const categories = ['전체', '한식', '일식', '중식', '분식', '양식', '야식', '카페'];
 
   // 1. Filter by Search Query & Selected Category
   const filteredRestaurants = restaurants.filter((restaurant) => {

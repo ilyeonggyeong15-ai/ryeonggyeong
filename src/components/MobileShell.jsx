@@ -5,7 +5,6 @@ const MobileShell = ({ children, activeTab, setActiveTab, hideNavBar }) => {
   const [time, setTime] = useState('12:00');
 
   useEffect(() => {
-    // Update simulated mobile phone status bar time
     const updateTime = () => {
       const now = new Date();
       const hrs = String(now.getHours()).padStart(2, '0');
@@ -19,9 +18,32 @@ const MobileShell = ({ children, activeTab, setActiveTab, hideNavBar }) => {
 
   return (
     <div className="app-container fade-in">
-      {/* Top Status Bar resembling an iPhone/Android status bar */}
+      {/* Top Browser / Application Frame Status Bar */}
       <div className="status-bar">
-        <div>{time}</div>
+        <div style={{ display: 'flex', alignItems: 'center', gap: 12 }}>
+          <span style={{ color: 'var(--primary)', fontWeight: 800 }}>● 냠냠스쿨</span>
+          <span style={{ color: 'var(--text-muted)', fontSize: '12px' }}>{time}</span>
+        </div>
+        
+        {/* Mock browser address bar indicating the university campus coordinates */}
+        <div style={{ 
+          backgroundColor: 'var(--bg-main)', 
+          padding: '4px 20px', 
+          borderRadius: '12px', 
+          fontSize: '11px', 
+          color: 'var(--text-muted)', 
+          border: '1px solid var(--border-color)', 
+          width: '280px', 
+          textAlign: 'center',
+          fontWeight: 600,
+          display: 'inline-block',
+          overflow: 'hidden',
+          textOverflow: 'ellipsis',
+          whiteSpace: 'nowrap'
+        }}>
+          https://yumyum.school/campus/busan-sashang
+        </div>
+
         <div className="status-bar-icons">
           <Signal size={14} fill="currentColor" strokeWidth={1} />
           <Wifi size={14} />
@@ -29,12 +51,12 @@ const MobileShell = ({ children, activeTab, setActiveTab, hideNavBar }) => {
         </div>
       </div>
 
-      {/* Main screen display */}
+      {/* 16:9 Main View Content Area */}
       <div className="screen-content custom-scroll">
         {children}
       </div>
 
-      {/* Bottom Sticky Navigation (only shown if not in Splash/Start screen and not hidden) */}
+      {/* Bottom Widescreen Navigation tabs */}
       {activeTab !== 'start' && !hideNavBar && (
         <div className="nav-bar">
           <button
@@ -42,16 +64,16 @@ const MobileShell = ({ children, activeTab, setActiveTab, hideNavBar }) => {
             onClick={() => setActiveTab('home')}
             id="nav-btn-home"
           >
-            <Home size={22} />
-            <span>홈</span>
+            <Home size={18} />
+            <span>홈 피드</span>
           </button>
           <button
             className={`nav-item ${activeTab === 'mypage' ? 'active' : ''}`}
             onClick={() => setActiveTab('mypage')}
             id="nav-btn-mypage"
           >
-            <User size={22} />
-            <span>마이페이지</span>
+            <User size={18} />
+            <span>마이 냠냠</span>
           </button>
         </div>
       )}

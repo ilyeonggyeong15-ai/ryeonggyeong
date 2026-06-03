@@ -1,5 +1,5 @@
 import React, { useState, useRef } from 'react';
-import { ChevronLeft, Camera, ThumbsUp, ThumbsDown, Star, AlertTriangle } from 'lucide-react';
+import { ChevronLeft, Camera, ThumbsUp, ThumbsDown, Star, AlertTriangle, X } from 'lucide-react';
 import { useApp } from '../context/AppContext';
 import confetti from 'canvas-confetti';
 
@@ -11,7 +11,7 @@ const ReviewWriter = ({ restaurantId, onBack }) => {
   const [content, setContent] = useState('');
   const [images, setImages] = useState([]);
   const [revisit, setRevisit] = useState(true);
-  const [alertMessage, setAlertMessage] = useState(null); // Custom validation modal text
+  const [alertMessage, setAlertMessage] = useState(null);
 
   const fileInputRef = useRef(null);
 
@@ -19,7 +19,6 @@ const ReviewWriter = ({ restaurantId, onBack }) => {
     return <div className="no-reviews-msg">가게를 찾을 수 없습니다.</div>;
   }
 
-  // 1. Photo Selection & Reader (Base64 encoding so they render locally)
   const handlePhotoUpload = (e) => {
     const files = Array.from(e.target.files);
     if (images.length + files.length > 3) {
@@ -40,26 +39,22 @@ const ReviewWriter = ({ restaurantId, onBack }) => {
     setImages((prev) => prev.filter((_, idx) => idx !== indexToRemove));
   };
 
-  // 2. Preset Quick tags
   const presetTags = [
     '혼밥하기 좋아요.',
     '양이 진짜 많아요.',
     '가성비 최고예요.',
     '음식이 빨리 나와요.',
     '매장이 청결해요.',
-    '친절하고 서비스가 좋아요.',
-    '재료가 엄청 신선해요.'
+    '친절하고 서비스가 좋아요.'
   ];
 
   const handleAppendTag = (tagText) => {
     setContent((prev) => {
       if (!prev) return tagText;
-      // Append tag text cleanly
       return prev.endsWith(' ') ? `${prev}${tagText}` : `${prev} ${tagText}`;
     });
   };
 
-  // 3. Profanity scanning & Registration
   const swearWords = [
     '시발', '씨발', '개새끼', '존나', '병신', '미친', '지랄', 
     '호로', '엿먹', '꺼져', '빡치', '새끼', '샹놈', '썅'
@@ -72,19 +67,16 @@ const ReviewWriter = ({ restaurantId, onBack }) => {
   const handleSubmit = (e) => {
     e.preventDefault();
 
-    // 20-character validation check (including spaces)
     if (content.length < 20) {
       setAlertMessage('리뷰는 최소 20자 이상 작성해야 합니다.');
       return;
     }
 
-    // Profanity check
     if (checkProfanity(content)) {
       setAlertMessage('작성하신 리뷰에 욕설이 포함되어 있어 등록할 수 없습니다. 건전한 냠냠스쿨 문화를 위해 욕설을 지워주세요.');
       return;
     }
 
-    // Save review
     addReview(restaurant.id, {
       rating,
       content,
@@ -92,14 +84,12 @@ const ReviewWriter = ({ restaurantId, onBack }) => {
       revisit
     });
 
-    // Fire fireworks celebration!
     confetti({
-      particleCount: 100,
-      spread: 70,
+      particleCount: 80,
+      spread: 60,
       origin: { y: 0.6 }
     });
 
-    // Return to detail screen
     onBack();
   };
 
@@ -107,156 +97,160 @@ const ReviewWriter = ({ restaurantId, onBack }) => {
   const isContentValid = charCount >= 20;
 
   return (
-    <div className="fade-in" style={{ backgroundColor: 'var(--bg-main)', minHeight: '100%' }}>
+    <div className="fade-in" style={{ display: 'flex', flexDirection: 'column', height: '100%' }}>
       {/* Header Sticky Bar */}
       <div className="writer-header">
         <button className="header-icon-btn" onClick={onBack} id="writer-back-btn">
-          <ChevronLeft size={22} />
+          <ChevronLeft size={20} />
         </button>
         <span className="writer-header-title">{restaurant.name} 리뷰 작성</span>
         <div style={{ width: '36px' }}></div>
       </div>
 
-      <form className="writer-body" onSubmit={handleSubmit}>
-        {/* Rating Select Row */}
-        <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 8, padding: '10px 0' }}>
-          <span style={{ fontSize: '13px', fontWeight: 700, color: 'var(--text-muted)' }}>이 밥집은 몇 점인가요?</span>
-          <div style={{ display: 'flex', gap: 6 }}>
-            {[1, 2, 3, 4, 5].map((star) => (
-              <button
-                type="button"
-                key={star}
-                onClick={() => setRating(star)}
-                style={{ background: 'none', border: 'none', cursor: 'pointer' }}
-                id={`rating-star-${star}`}
-              >
-                <Star
-                  size={32}
-                  fill={star <= rating ? '#FFB800' : 'none'}
-                  color={star <= rating ? '#FFB800' : 'var(--border-color)'}
-                />
-              </button>
-            ))}
-          </div>
-        </div>
-
-        {/* Photo Uploader Section - MUST come first */}
-        <div className="uploader-section">
-          <span className="uploader-label">사진 첨부 (최대 3장)</span>
-          <div className="uploader-row">
-            {images.length < 3 && (
-              <div 
-                className="uploader-btn-trigger" 
-                onClick={() => fileInputRef.current.click()}
-                id="photo-upload-trigger"
-              >
-                <Camera size={24} />
-                <span>{images.length}/3</span>
-              </div>
-            )}
-            
-            {/* Hidden Input File Element */}
-            <input
-              type="file"
-              accept="image/*"
-              multiple
-              ref={fileInputRef}
-              onChange={handlePhotoUpload}
-              style={{ display: 'none' }}
-            />
-
-            {/* Uploaded Image previews */}
-            {images.map((imgUrl, index) => (
-              <div key={index} className="uploaded-thumb-wrapper">
-                <img src={imgUrl} alt={`업로드 이미지 ${index + 1}`} className="uploaded-thumb" />
+      {/* Split Columns Form */}
+      <form className="split-layout" onSubmit={handleSubmit} style={{ flex: 1 }}>
+        
+        {/* Left Column: Ratings, Uploads & Revisit */}
+        <div className="split-left custom-scroll">
+          {/* Star selector */}
+          <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 6, padding: '8px 0', borderBottom: '1px solid var(--border-color)', width: '100%' }}>
+            <span style={{ fontSize: '12px', fontWeight: 700, color: 'var(--text-muted)' }}>이 밥집은 몇 점인가요?</span>
+            <div style={{ display: 'flex', gap: 6 }}>
+              {[1, 2, 3, 4, 5].map((star) => (
                 <button
                   type="button"
-                  className="thumb-remove-btn"
-                  onClick={() => handleRemovePhoto(index)}
-                  id={`remove-photo-${index}`}
+                  key={star}
+                  onClick={() => setRating(star)}
+                  style={{ background: 'none', border: 'none', cursor: 'pointer' }}
+                  id={`rating-star-${star}`}
                 >
-                  <X size={10} />
+                  <Star
+                    size={28}
+                    fill={star <= rating ? '#FFB800' : 'none'}
+                    color={star <= rating ? '#FFB800' : 'var(--border-color)'}
+                  />
                 </button>
-              </div>
-            ))}
+              ))}
+            </div>
           </div>
-        </div>
 
-        {/* Review Text Input Section - Sits directly below Photo Uploader */}
-        <div className="writer-input-section">
-          <span className="uploader-label">리뷰 내용 작성</span>
-          <textarea
-            className="writer-textarea"
-            placeholder="음식의 맛, 양, 분위기 등에 대한 솔직한 후기를 남겨주세요. (최소 20자 이상)"
-            value={content}
-            onChange={(e) => setContent(e.target.value)}
-            id="review-content-textarea"
-          />
-          <div className="writer-counter-row">
-            <span style={{ color: 'var(--text-muted)', fontSize: '11px' }}>
-              공백 포함 최소 20자
-            </span>
-            <span className={`writer-counter ${isContentValid ? 'valid' : 'invalid'}`}>
-              {charCount} / 20자
-            </span>
+          {/* Photo Uploader */}
+          <div className="uploader-section" style={{ borderBottom: '1px solid var(--border-color)', paddingBottom: '16px', width: '100%' }}>
+            <span className="uploader-label">사진 첨부 (최대 3장)</span>
+            <div className="uploader-row" style={{ marginTop: '6px' }}>
+              {images.length < 3 && (
+                <div 
+                  className="uploader-btn-trigger" 
+                  onClick={() => fileInputRef.current.click()}
+                  id="photo-upload-trigger"
+                  style={{ width: '64px', height: '64px' }}
+                >
+                  <Camera size={20} />
+                  <span>{images.length}/3</span>
+                </div>
+              )}
+              
+              <input
+                type="file"
+                accept="image/*"
+                multiple
+                ref={fileInputRef}
+                onChange={handlePhotoUpload}
+                style={{ display: 'none' }}
+              />
+
+              {images.map((imgUrl, index) => (
+                <div key={index} className="uploaded-thumb-wrapper" style={{ width: '64px', height: '64px' }}>
+                  <img src={imgUrl} alt={`업로드 이미지 ${index + 1}`} className="uploaded-thumb" />
+                  <button
+                    type="button"
+                    className="thumb-remove-btn"
+                    onClick={() => handleRemovePhoto(index)}
+                    id={`remove-photo-${index}`}
+                  >
+                    <X size={8} />
+                  </button>
+                </div>
+              ))}
+            </div>
           </div>
-        </div>
 
-        {/* Preset suggestions tags */}
-        <div className="quick-tags-section">
-          <span className="quick-tags-title">💡 자주 쓰이는 예시 문구 (클릭하여 입력)</span>
-          <div className="quick-tags-list">
-            {presetTags.map((tag) => (
-              <button
-                type="button"
-                key={tag}
-                className="quick-tag-pill"
-                onClick={() => handleAppendTag(tag)}
-                id={`preset-tag-${tag.replace(/\s+/g, '-')}`}
+          {/* Revisit card option */}
+          <div className="revisit-section" style={{ width: '100%' }}>
+            <span className="uploader-label">재방문 의사가 있으신가요?</span>
+            <div className="revisit-options" style={{ marginTop: '6px' }}>
+              <div
+                className={`revisit-option-card yes ${revisit ? 'selected' : ''}`}
+                onClick={() => setRevisit(true)}
+                id="revisit-yes-card"
               >
-                {tag}
-              </button>
-            ))}
-          </div>
-        </div>
-
-        {/* Revisit Intention checkbox / toggle cards */}
-        <div className="revisit-section">
-          <span className="uploader-label">재방문 의사가 있으신가요?</span>
-          <div className="revisit-options">
-            <div
-              className={`revisit-option-card yes ${revisit ? 'selected' : ''}`}
-              onClick={() => setRevisit(true)}
-              id="revisit-yes-card"
-            >
-              <ThumbsUp size={24} fill={revisit ? 'currentColor' : 'none'} />
-              <span>다시 올래요!</span>
-            </div>
-            <div
-              className={`revisit-option-card no ${!revisit ? 'selected' : ''}`}
-              onClick={() => setRevisit(false)}
-              id="revisit-no-card"
-            >
-              <ThumbsDown size={24} fill={!revisit ? 'currentColor' : 'none'} />
-              <span>이번만 갈래요</span>
+                <ThumbsUp size={20} fill={revisit ? 'currentColor' : 'none'} />
+                <span>다시 올래요!</span>
+              </div>
+              <div
+                className={`revisit-option-card no ${!revisit ? 'selected' : ''}`}
+                onClick={() => setRevisit(false)}
+                id="revisit-no-card"
+              >
+                <ThumbsDown size={20} fill={!revisit ? 'currentColor' : 'none'} />
+                <span>이번만 갈래요</span>
+              </div>
             </div>
           </div>
         </div>
 
-        {/* Submit Actions Button placed on right */}
-        <div className="writer-action-row">
-          <button
-            type="submit"
-            className="submit-btn"
-            disabled={!isContentValid}
-            id="submit-review-btn"
-          >
-            등록하기
-          </button>
+        {/* Right Column: Content box, tags, and right-aligned submit */}
+        <div className="split-right custom-scroll">
+          <div className="writer-input-section">
+            <span className="uploader-label">리뷰 내용 작성</span>
+            <textarea
+              className="writer-textarea"
+              placeholder="음식의 맛, 양, 분위기 등에 대한 솔직한 후기를 남겨주세요. (최소 20자 이상)"
+              value={content}
+              onChange={(e) => setContent(e.target.value)}
+              id="review-content-textarea"
+            />
+            <div className="writer-counter-row" style={{ marginTop: '4px' }}>
+              <span style={{ color: 'var(--text-muted)', fontSize: '10px' }}>공백 포함 최소 20자</span>
+              <span className={`writer-counter ${isContentValid ? 'valid' : 'invalid'}`}>
+                {charCount} / 20자
+              </span>
+            </div>
+          </div>
+
+          {/* Preset quick suggestions */}
+          <div className="quick-tags-section" style={{ marginTop: '10px' }}>
+            <span className="quick-tags-title">💡 자주 쓰이는 예시 문구 (클릭하여 입력)</span>
+            <div className="quick-tags-list" style={{ marginTop: '6px' }}>
+              {presetTags.map((tag) => (
+                <button
+                  type="button"
+                  key={tag}
+                  className="quick-tag-pill"
+                  onClick={() => handleAppendTag(tag)}
+                  id={`preset-tag-${tag.replace(/\s+/g, '-')}`}
+                >
+                  {tag}
+                </button>
+              ))}
+            </div>
+          </div>
+
+          {/* Right aligned submit button */}
+          <div className="writer-action-row" style={{ marginTop: 'auto', paddingTop: '16px' }}>
+            <button
+              type="submit"
+              className="submit-btn"
+              disabled={!isContentValid}
+              id="submit-review-btn"
+            >
+              리뷰 등록하기
+            </button>
+          </div>
         </div>
       </form>
 
-      {/* Validation profanity/length popup Modal */}
+      {/* Warning popup alert */}
       {alertMessage && (
         <div className="custom-alert-overlay" id="validation-alert-modal">
           <div className="custom-alert-card">
