@@ -8,7 +8,9 @@ import MyPageScreen from './screens/MyPageScreen';
 import { AppProvider } from './context/AppContext';
 
 const App = () => {
-  const [activeTab, setActiveTab] = useState('start'); // 'start', 'home', 'mypage'
+  const [activeTab, setActiveTab] = useState(() => {
+    return localStorage.getItem('yumyum_registered') === 'true' ? 'home' : 'start';
+  }); // 'start', 'home', 'mypage'
   const [selectedRestaurantId, setSelectedRestaurantId] = useState(null);
   const [isWritingReview, setIsWritingReview] = useState(false);
 

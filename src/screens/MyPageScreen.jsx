@@ -14,6 +14,9 @@ const MyPageScreen = ({ onSelectRestaurant }) => {
     nickname: user.nickname || user.name,
     grade: user.grade || '1학년',
   });
+  
+  // Custom delete state
+  const [deleteTarget, setDeleteTarget] = useState(null);
 
   const handleEdit = () => {
     setDraft({ nickname: user.nickname || user.name, grade: user.grade || '1학년' });
@@ -32,9 +35,18 @@ const MyPageScreen = ({ onSelectRestaurant }) => {
 
   const handleDelete = (e, restaurantId, reviewId) => {
     e.stopPropagation();
-    if (window.confirm('정말 이 리뷰를 삭제하시겠습니까?')) {
-      deleteReview(restaurantId, reviewId);
+    setDeleteTarget({ restaurantId, reviewId });
+  };
+
+  const confirmDelete = () => {
+    if (deleteTarget) {
+      deleteReview(deleteTarget.restaurantId, deleteTarget.reviewId);
+      setDeleteTarget(null);
     }
+  };
+
+  const cancelDelete = () => {
+    setDeleteTarget(null);
   };
 
   return (
@@ -66,7 +78,7 @@ const MyPageScreen = ({ onSelectRestaurant }) => {
           {/* Profile info or edit form */}
           <div style={{ flex: 1, minWidth: 0 }}>
             {isEditing ? (
-              <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
+              <div className="fade-in" style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
                 {/* Nickname input */}
                 <input
                   id="profile-nickname-input"
@@ -180,7 +192,7 @@ const MyPageScreen = ({ onSelectRestaurant }) => {
               </div>
             ) : (
               <div>
-                <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
+                <div style={{ display: 'flex', alignItems: 'center', gap: 8, width: '100%' }}>
                   <span style={{ fontSize: 17, fontWeight: 800, color: 'var(--text-main)' }}>
                     {user.nickname || user.name}
                   </span>
@@ -199,6 +211,30 @@ const MyPageScreen = ({ onSelectRestaurant }) => {
                     title="프로필 수정"
                   >
                     <Edit3 size={15} />
+                  </button>
+                  <button
+                    onClick={() => {
+                      if (window.confirm('모든 리뷰 데이터와 가입 설정을 초기화하고 처음 상태로 되돌리시겠습니까?')) {
+                        localStorage.clear();
+                        window.location.reload();
+                      }
+                    }}
+                    style={{
+                      marginLeft: 'auto',
+                      backgroundColor: 'transparent',
+                      border: '1px solid var(--danger)',
+                      color: 'var(--danger)',
+                      padding: '4px 8px',
+                      borderRadius: '8px',
+                      fontSize: '10px',
+                      fontWeight: 800,
+                      cursor: 'pointer',
+                      transition: 'all 0.2s',
+                    }}
+                    id="app-reset-btn"
+                    title="앱 데이터 초기화"
+                  >
+                    데이터 초기화 🔄
                   </button>
                 </div>
                 <div style={{ fontSize: 12, color: 'var(--text-muted)', fontWeight: 600, marginTop: 2 }}>
@@ -224,12 +260,7 @@ const MyPageScreen = ({ onSelectRestaurant }) => {
             </div>
             <div style={{ width: 1, backgroundColor: 'var(--border-color)' }} />
             <div style={{ flex: 1, textAlign: 'center' }}>
-              <div style={{ fontSize: 18, fontWeight: 800, color: 'var(--primary)' }}>{user.favoriteCategory}</div>
-              <div style={{ fontSize: 11, color: 'var(--text-muted)', fontWeight: 600 }}>최애 분야</div>
-            </div>
-            <div style={{ width: 1, backgroundColor: 'var(--border-color)' }} />
-            <div style={{ flex: 1, textAlign: 'center' }}>
-              <div style={{ fontSize: 18, fontWeight: 800, color: 'var(--primary)' }}>{user.grade?.[0] || '?'}</div>
+              <div style={{ fontSize: 18, fontWeight: 800, color: 'var(--primary)' }}>{user.grade || '1학년'}</div>
               <div style={{ fontSize: 11, color: 'var(--text-muted)', fontWeight: 600 }}>학년</div>
             </div>
           </div>
@@ -352,6 +383,39 @@ const MyPageScreen = ({ onSelectRestaurant }) => {
           )}
         </div>
       </div>
+
+      {/* Custom Delete Confirm Modal */}
+      {deleteTarget && (
+        <div className="custom-alert-overlay" id="delete-confirm-modal">
+          <div className="custom-alert-card" style={{ maxWidth: '280px', textAlign: 'center', padding: '20px 16px' }}>
+            <div className="alert-icon-wrapper danger" style={{ margin: '0 auto 12px', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+              <Trash2 size={24} color="var(--danger)" />
+            </div>
+            <h4 className="alert-title" style={{ fontSize: '15px', fontWeight: 800, marginBottom: '6px' }}>리뷰 삭제</h4>
+            <p className="alert-body" style={{ fontSize: '12px', color: 'var(--text-muted)', marginBottom: '16px', lineHeight: '1.4' }}>
+              정말 이 리뷰를 삭제하시겠습니까?<br />삭제된 리뷰는 복구할 수 없습니다.
+            </p>
+            <div style={{ display: 'flex', gap: '8px' }}>
+              <button
+                className="alert-btn-close"
+                style={{ flex: 1, backgroundColor: 'var(--danger)', color: 'white', border: 'none', padding: '10px', borderRadius: '10px', fontSize: '12px', fontWeight: 800, cursor: 'pointer', transition: 'background-color 0.2s' }}
+                onClick={confirmDelete}
+                id="confirm-delete-yes"
+              >
+                삭제하기
+              </button>
+              <button
+                className="alert-btn-close"
+                style={{ flex: 1, backgroundColor: 'var(--bg-main)', color: 'var(--text-main)', border: '1px solid var(--border-color)', padding: '10px', borderRadius: '10px', fontSize: '12px', fontWeight: 800, cursor: 'pointer', transition: 'all 0.2s' }}
+                onClick={cancelDelete}
+                id="confirm-delete-no"
+              >
+                취소
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   );
 };

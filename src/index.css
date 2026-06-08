@@ -1,3 +1,5 @@
+@import url('https://cdn.jsdelivr.net/gh/projectnoonnu/noonfonts_two@1.0/NanumSquareRound.woff');
+
 :root {
   --primary: #0066FF; /* Refreshing Cool Blue */
   --primary-light: #E8F0FE;
@@ -27,8 +29,8 @@
 }
 
 body {
-  font-family: 'Gowun Dodum', 'Nunito', -apple-system, BlinkMacSystemFont, sans-serif;
-  background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+  font-family: 'NanumSquareRound', 'Gowun Dodum', 'Nunito', -apple-system, BlinkMacSystemFont, sans-serif;
+  background: linear-gradient(135deg, #a1c4fd 0%, #c2e9fb 100%);
   color: var(--text-main);
   display: flex;
   justify-content: center;
@@ -37,10 +39,21 @@ body {
   overflow: hidden;
 }
 
+/* Micro Interactions */
+.restaurant-card:active,
+.category-pill:active,
+.submit-btn:active,
+.splash-start-btn:active,
+.quick-tag-pill:active,
+.header-icon-btn:active {
+  transform: scale(0.96) !important;
+  transition: transform 0.1s cubic-bezier(0.175, 0.885, 0.32, 1.275) !important;
+}
+
 /* App Shell mimicking a 9:16 Portrait Phone */
 .app-container {
-  width: min(390px, 95vw);
-  height: auto;
+  width: min(380px, 95vw, 53vh);
+  height: min(675px, 95vh);
   aspect-ratio: 9 / 16;
   background-color: var(--bg-main);
   border-radius: 44px;

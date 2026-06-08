@@ -1,6 +1,6 @@
 import React, { useState, useRef, useEffect } from 'react';
 import { 
-  ChevronLeft, Star, MapPin, Clock, Phone, Plus, Minus, 
+  ChevronLeft, Star, MapPin, Clock, Phone, 
   ThumbsUp, ThumbsDown, X, Flame, PenTool
 } from 'lucide-react';
 import { useApp } from '../context/AppContext';
@@ -9,6 +9,44 @@ const DetailScreen = ({ restaurantId, onBack, onWriteReview }) => {
   const { restaurants, getRatingStats } = useApp();
   
   const restaurant = restaurants.find((r) => r.id === restaurantId);
+
+  const [isNaverMapLoaded, setIsNaverMapLoaded] = useState(false);
+
+  useEffect(() => {
+    // VITE_NAVER_MAP_CLIENT_ID가 환경변수나 설정에 정의되어 있는지 확인
+    const clientId = import.meta.env.VITE_NAVER_MAP_CLIENT_ID;
+    if (!clientId) {
+      setIsNaverMapLoaded(false);
+      return;
+    }
+
+    if (window.naver && window.naver.maps) {
+      setIsNaverMapLoaded(true);
+      return;
+    }
+
+    const existingScript = document.getElementById('naver-map-script');
+    if (existingScript) {
+      const handleLoad = () => setIsNaverMapLoaded(true);
+      existingScript.addEventListener('load', handleLoad);
+      return () => existingScript.removeEventListener('load', handleLoad);
+    }
+
+    const script = document.createElement('script');
+    script.id = 'naver-map-script';
+    script.type = 'text/javascript';
+    script.src = `https://openapi.map.naver.com/openapi/v3/maps.js?ncpClientId=${clientId}`;
+    script.async = true;
+    script.defer = true;
+    script.onload = () => {
+      setIsNaverMapLoaded(true);
+    };
+    script.onerror = () => {
+      console.warn('Failed to load Naver Map API, fallback to Leaflet');
+      setIsNaverMapLoaded(false);
+    };
+    document.head.appendChild(script);
+  }, []);
 
   if (!restaurant) {
     return (
@@ -21,63 +59,165 @@ const DetailScreen = ({ restaurantId, onBack, onWriteReview }) => {
 
   const { rating, count } = getRatingStats(restaurant);
 
-  // 1. Photo Carousel State
+  // 1. Mapped images (Max 3 as requested: "최대 3개의 사진을 볼 수 있다")
+  const displayImages = restaurant.images.slice(0, 3);
   const [activeSlide, setActiveSlide] = useState(0);
-  const slideCount = restaurant.images.length;
+  const slideCount = displayImages.length;
 
   const nextSlide = () => {
     setActiveSlide((prev) => (prev + 1) % slideCount);
   };
 
   useEffect(() => {
+    if (slideCount <= 1) return;
     const timer = setInterval(nextSlide, 4500);
     return () => clearInterval(timer);
   }, [slideCount]);
 
-  // 2. Map Simulator Interactive State
-  const [zoom, setZoom] = useState(1.5);
-  const [isDragging, setIsDragging] = useState(false);
-  const [dragStart, setDragStart] = useState({ x: 0, y: 0 });
-  const [mapOffset, setMapOffset] = useState({ x: 0, y: 0 });
-  const mapRef = useRef(null);
-
-  const handleMouseDown = (e) => {
-    setIsDragging(true);
-    setDragStart({ x: e.clientX - mapOffset.x, y: e.clientY - mapOffset.y });
-  };
-
-  const handleMouseMove = (e) => {
-    if (!isDragging) return;
-    setMapOffset({
-      x: e.clientX - dragStart.x,
-      y: e.clientY - dragStart.y
-    });
-  };
-
-  const handleMouseUp = () => {
-    setIsDragging(false);
-  };
+  // Carousel Swiping Gestures (Mouse & Touch)
+  const [dragStart, setDragStart] = useState(0);
 
   const handleTouchStart = (e) => {
-    if (e.touches.length === 1) {
-      setIsDragging(true);
-      setDragStart({
-        x: e.touches[0].clientX - mapOffset.x,
-        y: e.touches[0].clientY - mapOffset.y
-      });
+    setDragStart(e.touches[0].clientX);
+  };
+
+  const handleTouchEnd = (e) => {
+    const dragEnd = e.changedTouches[0].clientX;
+    const diff = dragStart - dragEnd;
+    if (diff > 50) {
+      // Swiped left -> next slide
+      setActiveSlide((prev) => (prev + 1) % slideCount);
+    } else if (diff < -50) {
+      // Swiped right -> prev slide
+      setActiveSlide((prev) => (prev - 1 + slideCount) % slideCount);
     }
   };
 
-  const handleTouchMove = (e) => {
-    if (!isDragging || e.touches.length !== 1) return;
-    setMapOffset({
-      x: e.touches[0].clientX - dragStart.x,
-      y: e.touches[0].clientY - dragStart.y
-    });
+  const handleMouseDown = (e) => {
+    setDragStart(e.clientX);
   };
 
-  const zoomIn = () => setZoom((z) => Math.min(z + 0.25, 2.5));
-  const zoomOut = () => setZoom((z) => Math.max(z - 0.25, 0.75));
+  const handleMouseUp = (e) => {
+    const diff = dragStart - e.clientX;
+    if (diff > 50) {
+      setActiveSlide((prev) => (prev + 1) % slideCount);
+    } else if (diff < -50) {
+      setActiveSlide((prev) => (prev - 1 + slideCount) % slideCount);
+    }
+  };
+
+  // 2. Leaflet & Naver Map Hybrid integration
+  const mapContainerRef = useRef(null);
+  const mapInstanceRef = useRef(null);
+
+  useEffect(() => {
+    if (!mapContainerRef.current) return;
+    const coords = restaurant.mapCoords || { lat: 35.1458, lng: 129.0094 };
+
+    // 1) NAVER Map API rendering
+    if (isNaverMapLoaded && window.naver && window.naver.maps) {
+      // Clean up leaflet instance if existed
+      if (mapInstanceRef.current && typeof mapInstanceRef.current.remove === 'function') {
+        mapInstanceRef.current.remove();
+        mapInstanceRef.current = null;
+      }
+
+      // Initialize Naver Map
+      const mapOptions = {
+        center: new window.naver.maps.LatLng(coords.lat, coords.lng),
+        zoom: 16,
+        zoomControl: false,
+        mapTypeControl: false,
+        scaleControl: false,
+        logoControl: false
+      };
+
+      const naverMap = new window.naver.maps.Map(mapContainerRef.current, mapOptions);
+      mapInstanceRef.current = naverMap;
+
+      const markerContent = `
+        <div style="display: flex; flex-direction: column; align-items: center; position: relative;">
+          <div style="width: 14px; height: 14px; background-color: #03C75A; border: 2.5px solid white; border-radius: 50% 50% 50% 0; transform: rotate(-45deg); box-shadow: 0 4px 8px rgba(0,0,0,0.25);"></div>
+          <div style="background-color: #1c1f23; color: white; padding: 4px 8px; border-radius: 6px; font-size: 10px; font-weight: 800; margin-top: 6px; box-shadow: 0 2px 6px rgba(0,0,0,0.2); white-space: nowrap; font-family: 'Gowun Dodum', sans-serif;">${restaurant.name}</div>
+        </div>
+      `;
+
+      new window.naver.maps.Marker({
+        position: new window.naver.maps.LatLng(coords.lat, coords.lng),
+        map: naverMap,
+        icon: {
+          content: markerContent,
+          size: new window.naver.maps.Size(30, 42),
+          anchor: new window.naver.maps.Point(15, 20)
+        }
+      });
+
+      return;
+    }
+
+    // 2) Leaflet Map Fallback
+    const L = window.L;
+    if (!L) return;
+
+    if (mapInstanceRef.current) {
+      if (typeof mapInstanceRef.current.remove === 'function') {
+        mapInstanceRef.current.remove();
+      }
+      mapInstanceRef.current = null;
+    }
+
+    mapInstanceRef.current = L.map(mapContainerRef.current, {
+      center: [coords.lat, coords.lng],
+      zoom: 16,
+      zoomControl: false,
+      attributionControl: false
+    });
+
+    L.tileLayer('https://{s}.basemaps.cartocdn.com/rastertiles/voyager/{z}/{x}/{y}{r}.png', {
+      maxZoom: 19
+    }).addTo(mapInstanceRef.current);
+
+    const customIcon = L.divIcon({
+      className: 'custom-leaflet-marker',
+      html: `
+        <div style="display: flex; flex-direction: column; align-items: center; position: relative;">
+          <div style="width: 14px; height: 14px; background-color: #03C75A; border: 2.5px solid white; border-radius: 50% 50% 50% 0; transform: rotate(-45deg); box-shadow: 0 4px 8px rgba(0,0,0,0.25);"></div>
+          <div style="background-color: #1c1f23; color: white; padding: 4px 8px; border-radius: 6px; font-size: 10px; font-weight: 800; margin-top: 6px; box-shadow: 0 2px 6px rgba(0,0,0,0.2); white-space: nowrap; font-family: 'Gowun Dodum', sans-serif;">${restaurant.name}</div>
+        </div>
+      `,
+      iconSize: [30, 42],
+      iconAnchor: [15, 20]
+    });
+
+    L.marker([coords.lat, coords.lng], { icon: customIcon }).addTo(mapInstanceRef.current);
+
+    return () => {
+      if (mapInstanceRef.current && typeof mapInstanceRef.current.remove === 'function') {
+        mapInstanceRef.current.remove();
+        mapInstanceRef.current = null;
+      }
+    };
+  }, [restaurant, isNaverMapLoaded]);
+
+  const zoomIn = () => {
+    if (mapInstanceRef.current) {
+      if (isNaverMapLoaded && window.naver && window.naver.maps) {
+        mapInstanceRef.current.setZoom(mapInstanceRef.current.getZoom() + 1);
+      } else if (typeof mapInstanceRef.current.zoomIn === 'function') {
+        mapInstanceRef.current.zoomIn();
+      }
+    }
+  };
+
+  const zoomOut = () => {
+    if (mapInstanceRef.current) {
+      if (isNaverMapLoaded && window.naver && window.naver.maps) {
+        mapInstanceRef.current.setZoom(mapInstanceRef.current.getZoom() - 1);
+      } else if (typeof mapInstanceRef.current.zoomOut === 'function') {
+        mapInstanceRef.current.zoomOut();
+      }
+    }
+  };
 
   // 3. Reviews Filter & Sorting States
   const [sortBy, setSortBy] = useState('popular');
@@ -119,36 +259,60 @@ const DetailScreen = ({ restaurantId, onBack, onWriteReview }) => {
       {/* Scrollable portrait content */}
       <div className="custom-scroll" style={{ flex: 1, overflowY: 'auto', paddingBottom: '80px' }}>
 
-        {/* Photo Carousel */}
-        <div className="carousel-container" style={{ borderRadius: 0, height: 200 }}>
-          {restaurant.images.map((imgUrl, index) => (
-            <img
-              key={index}
-              src={imgUrl}
-              alt={`${restaurant.name} 사진 ${index + 1}`}
-              className={`carousel-slide ${index === activeSlide ? 'active' : ''}`}
-              onError={(e) => {
-                e.target.onerror = null;
-                e.target.src = "https://images.unsplash.com/photo-1546069901-ba9599a7e63c?auto=format&fit=crop&q=80&w=400";
-              }}
-            />
-          ))}
-          <div className="carousel-indicators">
-            {restaurant.images.map((_, index) => (
-              <div
-                key={index}
-                className={`indicator-dot ${index === activeSlide ? 'active' : ''}`}
-                onClick={() => setActiveSlide(index)}
-                style={{ cursor: 'pointer' }}
-              />
+        {/* Photo Carousel (Touch-swipeable & drag-slideable, showing max 3 pictures) */}
+        <div 
+          className="carousel-container" 
+          style={{ borderRadius: 0, height: 200, cursor: 'grab', position: 'relative', overflow: 'hidden' }}
+          onTouchStart={handleTouchStart}
+          onTouchEnd={handleTouchEnd}
+          onMouseDown={handleMouseDown}
+          onMouseUp={handleMouseUp}
+        >
+          <div 
+            style={{ 
+              display: 'flex', 
+              width: `${slideCount * 100}%`, 
+              height: '100%', 
+              transform: `translateX(-${(activeSlide / slideCount) * 100}%)`, 
+              transition: 'transform 0.4s cubic-bezier(0.25, 0.46, 0.45, 0.94)' 
+            }}
+          >
+            {displayImages.map((imgUrl, index) => (
+              <div key={index} style={{ width: `${100 / slideCount}%`, height: '100%', flexShrink: 0 }}>
+                <img
+                  src={imgUrl}
+                  alt={`${restaurant.name} 사진 ${index + 1}`}
+                  style={{
+                    width: '100%',
+                    height: '100%',
+                    objectFit: 'cover'
+                  }}
+                  onError={(e) => {
+                    e.target.onerror = null;
+                    e.target.src = "https://images.unsplash.com/photo-1546069901-ba9599a7e63c?auto=format&fit=crop&q=80&w=400";
+                  }}
+                />
+              </div>
             ))}
           </div>
+          {slideCount > 1 && (
+            <div className="carousel-indicators">
+              {displayImages.map((_, index) => (
+                <div
+                  key={index}
+                  className={`indicator-dot ${index === activeSlide ? 'active' : ''}`}
+                  onClick={(e) => { e.stopPropagation(); setActiveSlide(index); }}
+                  style={{ cursor: 'pointer' }}
+                />
+              ))}
+            </div>
+          )}
         </div>
 
         {/* Title & Rating */}
         <div style={{ padding: '14px 16px 10px', display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start' }}>
           <div>
-            <h2 className="detail-title" style={{ fontSize: 18 }}>{restaurant.name}</h2>
+            <h2 className="detail-title" style={{ fontSize: 17 }}>{restaurant.name}</h2>
             <div className="detail-category-row">
               <span style={{ color: 'var(--primary)', fontWeight: 700 }}>{restaurant.category}</span>
               <span>•</span>
@@ -171,7 +335,7 @@ const DetailScreen = ({ restaurantId, onBack, onWriteReview }) => {
             <Clock size={15} className="info-item-icon" />
             <div className="info-item-content">
               <div className="info-item-label">영업시간</div>
-              <div className="info-item-value">{restaurant.hours}</div>
+              <div className="info-item-value">{restaurant.hours || '영업시간 정보 없음'}</div>
             </div>
           </div>
           <div className="info-item">
@@ -192,41 +356,62 @@ const DetailScreen = ({ restaurantId, onBack, onWriteReview }) => {
           )}
         </div>
 
-        {/* Interactive Simulated Naver Map */}
-        <div
-          className="map-container-mock"
-          ref={mapRef}
-          onMouseDown={handleMouseDown}
-          onMouseMove={handleMouseMove}
-          onMouseUp={handleMouseUp}
-          onMouseLeave={handleMouseUp}
-          onTouchStart={handleTouchStart}
-          onTouchMove={handleTouchMove}
-          onTouchEnd={handleMouseUp}
-          id="naver-map-simulator"
-          style={{ margin: '0 16px 14px', borderRadius: 16 }}
-        >
+        {/* Interactive Leaflet Map styled as Naver Map */}
+        <div style={{ margin: '0 16px 14px', position: 'relative' }}>
           <div
-            className="map-bg-grid"
+            ref={mapContainerRef}
+            id="naver-map-simulator"
             style={{
-              transform: `translate(${mapOffset.x}px, ${mapOffset.y}px)`,
-              backgroundSize: `${35 * zoom}px ${35 * zoom}px`
+              height: '150px',
+              borderRadius: '16px',
+              overflow: 'hidden',
+              border: '1px solid var(--border-color)',
+              position: 'relative',
+              backgroundColor: '#E4ECE5',
+              zIndex: 1
             }}
           />
-          <div
-            className="map-marker"
-            style={{
-              transform: `translate(${mapOffset.x + (restaurant.mapCoords.x * 200 * zoom)}px, ${mapOffset.y + (restaurant.mapCoords.y * 200 * zoom)}px)`
+          {/* Naver style logo watermark overlay */}
+          <div 
+            className="naver-logo-watermark" 
+            style={{ 
+              position: 'absolute', 
+              bottom: '8px', 
+              left: '8px', 
+              backgroundColor: 'rgba(255, 255, 255, 0.92)', 
+              padding: '3px 7px', 
+              borderRadius: '4px', 
+              fontSize: '9px', 
+              fontWeight: 800, 
+              color: '#03C75A', 
+              boxShadow: '0 2px 4px rgba(0,0,0,0.08)', 
+              display: 'flex', 
+              alignItems: 'center', 
+              gap: '3px',
+              zIndex: 10,
+              pointerEvents: 'none'
             }}
           >
-            <div className="map-marker-pin" />
-            <div className="map-marker-label">{restaurant.name}</div>
-          </div>
-          <div className="naver-logo-watermark">
-            <div className="naver-logo-circle" />
+            <div className="naver-logo-circle" style={{ width: '6px', height: '6px', backgroundColor: '#03C75A', borderRadius: '50%' }} />
             <span>NAVER 지도</span>
           </div>
-          <div className="map-control-zoom">
+          {/* Zoom controls */}
+          <div 
+            className="map-control-zoom" 
+            style={{ 
+              position: 'absolute', 
+              right: '8px', 
+              bottom: '8px', 
+              display: 'flex', 
+              flexDirection: 'column', 
+              gap: '1px', 
+              backgroundColor: 'white', 
+              borderRadius: '8px', 
+              overflow: 'hidden', 
+              boxShadow: '0 2px 6px rgba(0,0,0,0.12)', 
+              zIndex: 10 
+            }}
+          >
             <button className="map-zoom-btn" onClick={zoomIn} id="map-zoom-in">+</button>
             <button className="map-zoom-btn" onClick={zoomOut} id="map-zoom-out">-</button>
           </div>
