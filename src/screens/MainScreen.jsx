@@ -45,13 +45,18 @@ const MainScreen = ({ onSelectRestaurant }) => {
       {/* Header section with brand logo */}
       <div className="home-header">
         <div className="brand-wrapper">
-          <div className="logo-icon">냠</div>
+          <img
+            src="/logo.png"
+            alt="냠냠스쿨"
+            style={{ width: 32, height: 32, borderRadius: 10, objectFit: 'cover' }}
+            onError={(e) => { e.target.onerror = null; e.target.style.display = 'none'; }}
+          />
           <span className="brand-name">냠냠스쿨</span>
         </div>
 
         {/* Search Input Bar */}
         <div className="search-container">
-          <Search size={18} className="search-icon-left" />
+          <Search size={16} className="search-icon-left" />
           <input
             type="text"
             className="search-input"

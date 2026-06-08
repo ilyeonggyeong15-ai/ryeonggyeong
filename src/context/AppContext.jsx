@@ -14,8 +14,10 @@ export const AppProvider = ({ children }) => {
   // Current user details
   const [user, setUser] = useState({
     name: '김냠냠',
+    nickname: '김냠냠',
     avatar: '냠',
     university: '동서대학교',
+    grade: '2학년',
     department: '인공지능학과 23학번',
     favoriteCategory: '분식'
   });
@@ -591,6 +593,16 @@ export const AppProvider = ({ children }) => {
     );
   };
 
+  // Update user profile fields
+  const updateProfile = (fields) => {
+    setUser((prev) => ({
+      ...prev,
+      ...fields,
+      // keep name in sync with nickname so review author names match
+      name: fields.nickname ?? prev.nickname ?? prev.name
+    }));
+  };
+
   // Helper selectors
   const getRatingStats = (restaurant) => {
     if (!restaurant.reviews.length) return { rating: 0, count: 0 };
@@ -625,6 +637,7 @@ export const AppProvider = ({ children }) => {
       value={{
         user,
         setUser,
+        updateProfile,
         restaurants,
         addReview,
         deleteReview,

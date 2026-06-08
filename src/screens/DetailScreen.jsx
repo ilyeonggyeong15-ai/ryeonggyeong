@@ -1,7 +1,7 @@
 import React, { useState, useRef, useEffect } from 'react';
 import { 
   ChevronLeft, Star, MapPin, Clock, Phone, Plus, Minus, 
-  ThumbsUp, ThumbsDown, Camera, X, Flame, PenTool
+  ThumbsUp, ThumbsDown, X, Flame, PenTool
 } from 'lucide-react';
 import { useApp } from '../context/AppContext';
 
@@ -80,181 +80,164 @@ const DetailScreen = ({ restaurantId, onBack, onWriteReview }) => {
   const zoomOut = () => setZoom((z) => Math.max(z - 0.25, 0.75));
 
   // 3. Reviews Filter & Sorting States
-  const [sortBy, setSortBy] = useState('popular'); // 'popular' or 'latest'
+  const [sortBy, setSortBy] = useState('popular');
   const [photoOnly, setPhotoOnly] = useState(false);
   const [lightboxImage, setLightboxImage] = useState(null);
 
   const filteredReviews = restaurant.reviews.filter((rev) => {
-    if (photoOnly) {
-      return rev.images && rev.images.length > 0;
-    }
+    if (photoOnly) return rev.images && rev.images.length > 0;
     return true;
   });
 
   const sortedReviews = [...filteredReviews].sort((a, b) => {
-    if (sortBy === 'popular') {
-      return b.likes - a.likes;
-    } else {
-      return new Date(b.date) - new Date(a.date);
-    }
+    if (sortBy === 'popular') return b.likes - a.likes;
+    return new Date(b.date) - new Date(a.date);
   });
 
   const allPhotos = [];
   restaurant.reviews.forEach((rev) => {
     if (rev.images && rev.images.length > 0) {
       rev.images.forEach((img) => {
-        allPhotos.push({
-          imgUrl: img,
-          reviewId: rev.id,
-          author: rev.author,
-          date: rev.date
-        });
+        allPhotos.push({ imgUrl: img, reviewId: rev.id, author: rev.author, date: rev.date });
       });
     }
   });
 
   return (
     <div className="fade-in" style={{ display: 'flex', flexDirection: 'column', height: '100%' }}>
-      {/* Top Header Menu */}
-      <div className="detail-header">
+      {/* Sticky Top Header */}
+      <div className="detail-header" style={{ flexShrink: 0 }}>
         <button className="header-icon-btn" onClick={onBack} id="detail-back-btn">
           <ChevronLeft size={20} />
         </button>
-        <span style={{ fontWeight: 800, color: 'var(--text-main)', fontSize: '15px' }}>
-          {restaurant.name} 상세 정보
+        <span style={{ fontWeight: 800, color: 'var(--text-main)', fontSize: '14px', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap', maxWidth: '60%' }}>
+          {restaurant.name}
         </span>
-        <div style={{ width: '36px' }}></div>
+        <div style={{ width: '36px' }} />
       </div>
 
-      {/* 16:9 Split Panel Layout */}
-      <div className="split-layout">
-        
-        {/* Left Column: Media, Details, Map */}
-        <div className="split-left custom-scroll">
-          {/* Slider Carousel */}
-          <div className="carousel-container">
-            {restaurant.images.map((imgUrl, index) => (
-              <img
+      {/* Scrollable portrait content */}
+      <div className="custom-scroll" style={{ flex: 1, overflowY: 'auto', paddingBottom: '80px' }}>
+
+        {/* Photo Carousel */}
+        <div className="carousel-container" style={{ borderRadius: 0, height: 200 }}>
+          {restaurant.images.map((imgUrl, index) => (
+            <img
+              key={index}
+              src={imgUrl}
+              alt={`${restaurant.name} 사진 ${index + 1}`}
+              className={`carousel-slide ${index === activeSlide ? 'active' : ''}`}
+              onError={(e) => {
+                e.target.onerror = null;
+                e.target.src = "https://images.unsplash.com/photo-1546069901-ba9599a7e63c?auto=format&fit=crop&q=80&w=400";
+              }}
+            />
+          ))}
+          <div className="carousel-indicators">
+            {restaurant.images.map((_, index) => (
+              <div
                 key={index}
-                src={imgUrl}
-                alt={`${restaurant.name} 사진 ${index + 1}`}
-                className={`carousel-slide ${index === activeSlide ? 'active' : ''}`}
-                onError={(e) => {
-                  e.target.onerror = null;
-                  e.target.src = "https://images.unsplash.com/photo-1546069901-ba9599a7e63c?auto=format&fit=crop&q=80&w=400";
-                }}
+                className={`indicator-dot ${index === activeSlide ? 'active' : ''}`}
+                onClick={() => setActiveSlide(index)}
+                style={{ cursor: 'pointer' }}
               />
             ))}
-            <div className="carousel-indicators">
-              {restaurant.images.map((_, index) => (
-                <div
-                  key={index}
-                  className={`indicator-dot ${index === activeSlide ? 'active' : ''}`}
-                  onClick={() => setActiveSlide(index)}
-                  style={{ cursor: 'pointer' }}
-                />
-              ))}
-            </div>
-          </div>
-
-          {/* Heading Info */}
-          <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', marginTop: '8px' }}>
-            <div>
-              <h2 className="detail-title">{restaurant.name}</h2>
-              <div className="detail-category-row">
-                <span style={{ color: 'var(--primary)', fontWeight: 700 }}>{restaurant.category}</span>
-                <span>•</span>
-                <span>정문 기준 {restaurant.distance}m</span>
-              </div>
-            </div>
-            <div className="detail-rating-huge">
-              <span className="detail-rating-val">{rating > 0 ? rating : '0.0'}</span>
-              <span className="detail-rating-lbl">평점 ({count})</span>
-            </div>
-          </div>
-
-          <p style={{ fontSize: '13px', lineHeight: '1.5', color: 'var(--text-main)', margin: '4px 0' }}>
-            {restaurant.description}
-          </p>
-
-          {/* Info Details List */}
-          <div className="info-details-list">
-            <div className="info-item">
-              <Clock size={15} className="info-item-icon" />
-              <div className="info-item-content">
-                <div className="info-item-label">영업시간</div>
-                <div className="info-item-value">{restaurant.hours}</div>
-              </div>
-            </div>
-
-            <div className="info-item">
-              <MapPin size={15} className="info-item-icon" />
-              <div className="info-item-content">
-                <div className="info-item-label">가게 위치</div>
-                <div className="info-item-value">{restaurant.address}</div>
-              </div>
-            </div>
-
-            {restaurant.phone && (
-              <div className="info-item">
-                <Phone size={15} className="info-item-icon" />
-                <div className="info-item-content">
-                  <div className="info-item-label">전화번호</div>
-                  <div className="info-item-value">{restaurant.phone}</div>
-                </div>
-              </div>
-            )}
-          </div>
-
-          {/* Interactive Simulated Naver Map */}
-          <div 
-            className="map-container-mock"
-            ref={mapRef}
-            onMouseDown={handleMouseDown}
-            onMouseMove={handleMouseMove}
-            onMouseUp={handleMouseUp}
-            onMouseLeave={handleMouseUp}
-            onTouchStart={handleTouchStart}
-            onTouchMove={handleTouchMove}
-            onTouchEnd={handleMouseUp}
-            id="naver-map-simulator"
-          >
-            <div 
-              className="map-bg-grid" 
-              style={{ 
-                transform: `translate(${mapOffset.x}px, ${mapOffset.y}px)`,
-                backgroundSize: `${35 * zoom}px ${35 * zoom}px`
-              }} 
-            />
-
-            <div 
-              className="map-marker"
-              style={{
-                transform: `translate(${mapOffset.x + (restaurant.mapCoords.x * 200 * zoom)}px, ${mapOffset.y + (restaurant.mapCoords.y * 200 * zoom)}px)`
-              }}
-            >
-              <div className="map-marker-pin" />
-              <div className="map-marker-label">{restaurant.name}</div>
-            </div>
-
-            <div className="naver-logo-watermark">
-              <div className="naver-logo-circle" />
-              <span>NAVER 지도</span>
-            </div>
-
-            <div className="map-control-zoom">
-              <button className="map-zoom-btn" onClick={zoomIn} id="map-zoom-in">+</button>
-              <button className="map-zoom-btn" onClick={zoomOut} id="map-zoom-out">-</button>
-            </div>
           </div>
         </div>
 
-        {/* Right Column: Reviews Scrolling Thread */}
-        <div className="split-right custom-scroll">
-          <div className="reviews-section-header">
+        {/* Title & Rating */}
+        <div style={{ padding: '14px 16px 10px', display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start' }}>
+          <div>
+            <h2 className="detail-title" style={{ fontSize: 18 }}>{restaurant.name}</h2>
+            <div className="detail-category-row">
+              <span style={{ color: 'var(--primary)', fontWeight: 700 }}>{restaurant.category}</span>
+              <span>•</span>
+              <span>정문 기준 {restaurant.distance}m</span>
+            </div>
+          </div>
+          <div className="detail-rating-huge">
+            <span className="detail-rating-val">{rating > 0 ? rating : '0.0'}</span>
+            <span className="detail-rating-lbl">평점 ({count})</span>
+          </div>
+        </div>
+
+        <p style={{ fontSize: '13px', lineHeight: '1.5', color: 'var(--text-muted)', margin: '0 16px 14px', fontWeight: 500 }}>
+          {restaurant.description}
+        </p>
+
+        {/* Info Details */}
+        <div className="info-details-list" style={{ margin: '0 16px 14px' }}>
+          <div className="info-item">
+            <Clock size={15} className="info-item-icon" />
+            <div className="info-item-content">
+              <div className="info-item-label">영업시간</div>
+              <div className="info-item-value">{restaurant.hours}</div>
+            </div>
+          </div>
+          <div className="info-item">
+            <MapPin size={15} className="info-item-icon" />
+            <div className="info-item-content">
+              <div className="info-item-label">가게 위치</div>
+              <div className="info-item-value">{restaurant.address}</div>
+            </div>
+          </div>
+          {restaurant.phone && (
+            <div className="info-item">
+              <Phone size={15} className="info-item-icon" />
+              <div className="info-item-content">
+                <div className="info-item-label">전화번호</div>
+                <div className="info-item-value">{restaurant.phone}</div>
+              </div>
+            </div>
+          )}
+        </div>
+
+        {/* Interactive Simulated Naver Map */}
+        <div
+          className="map-container-mock"
+          ref={mapRef}
+          onMouseDown={handleMouseDown}
+          onMouseMove={handleMouseMove}
+          onMouseUp={handleMouseUp}
+          onMouseLeave={handleMouseUp}
+          onTouchStart={handleTouchStart}
+          onTouchMove={handleTouchMove}
+          onTouchEnd={handleMouseUp}
+          id="naver-map-simulator"
+          style={{ margin: '0 16px 14px', borderRadius: 16 }}
+        >
+          <div
+            className="map-bg-grid"
+            style={{
+              transform: `translate(${mapOffset.x}px, ${mapOffset.y}px)`,
+              backgroundSize: `${35 * zoom}px ${35 * zoom}px`
+            }}
+          />
+          <div
+            className="map-marker"
+            style={{
+              transform: `translate(${mapOffset.x + (restaurant.mapCoords.x * 200 * zoom)}px, ${mapOffset.y + (restaurant.mapCoords.y * 200 * zoom)}px)`
+            }}
+          >
+            <div className="map-marker-pin" />
+            <div className="map-marker-label">{restaurant.name}</div>
+          </div>
+          <div className="naver-logo-watermark">
+            <div className="naver-logo-circle" />
+            <span>NAVER 지도</span>
+          </div>
+          <div className="map-control-zoom">
+            <button className="map-zoom-btn" onClick={zoomIn} id="map-zoom-in">+</button>
+            <button className="map-zoom-btn" onClick={zoomOut} id="map-zoom-out">-</button>
+          </div>
+        </div>
+
+        {/* Reviews Section */}
+        <div style={{ padding: '0 16px' }}>
+          <div className="reviews-section-header" style={{ marginBottom: 10 }}>
             <h3 className="reviews-title">리뷰 ({count})</h3>
-            <div 
-              className="photo-only-toggle" 
+            <div
+              className="photo-only-toggle"
               onClick={() => setPhotoOnly(!photoOnly)}
               id="photo-reviews-only-toggle"
             >
@@ -265,9 +248,8 @@ const DetailScreen = ({ restaurantId, onBack, onWriteReview }) => {
             </div>
           </div>
 
-          {/* Sorting tabs */}
           {!photoOnly && (
-            <div className="reviews-filter-tabs">
+            <div className="reviews-filter-tabs" style={{ marginBottom: 10 }}>
               <button
                 className={`tab-btn ${sortBy === 'popular' ? 'active' : ''}`}
                 onClick={() => setSortBy('popular')}
@@ -285,7 +267,6 @@ const DetailScreen = ({ restaurantId, onBack, onWriteReview }) => {
             </div>
           )}
 
-          {/* Render reviews lists */}
           {photoOnly ? (
             allPhotos.length > 0 ? (
               <div className="photo-reviews-grid">
@@ -334,7 +315,6 @@ const DetailScreen = ({ restaurantId, onBack, onWriteReview }) => {
                       </div>
                     </div>
 
-                    {/* Star icons */}
                     <div style={{ display: 'flex', alignItems: 'center', gap: 2 }}>
                       {[1, 2, 3, 4, 5].map((star) => (
                         <Star
@@ -386,16 +366,16 @@ const DetailScreen = ({ restaurantId, onBack, onWriteReview }) => {
       </div>
 
       {/* Floating Review Writer Button */}
-      <button 
+      <button
         style={{
           position: 'absolute',
-          bottom: '24px',
-          right: '24px',
+          bottom: '80px',
+          right: '16px',
           backgroundColor: 'var(--primary)',
           color: 'white',
           border: 'none',
-          width: '52px',
-          height: '52px',
+          width: '50px',
+          height: '50px',
           borderRadius: '50%',
           boxShadow: '0 6px 20px rgba(0, 102, 255, 0.3)',
           display: 'flex',
@@ -410,7 +390,7 @@ const DetailScreen = ({ restaurantId, onBack, onWriteReview }) => {
         <PenTool size={20} />
       </button>
 
-      {/* Picture Zoom Modal Overlay */}
+      {/* Picture Zoom Modal */}
       {lightboxImage && (
         <div className="lightbox-modal" onClick={() => setLightboxImage(null)} id="image-lightbox-modal">
           <button className="lightbox-close-btn" onClick={() => setLightboxImage(null)}>

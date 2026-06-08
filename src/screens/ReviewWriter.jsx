@@ -25,7 +25,6 @@ const ReviewWriter = ({ restaurantId, onBack }) => {
       setAlertMessage('사진은 최대 3장까지만 업로드할 수 있습니다.');
       return;
     }
-
     files.forEach((file) => {
       const reader = new FileReader();
       reader.onloadend = () => {
@@ -56,13 +55,11 @@ const ReviewWriter = ({ restaurantId, onBack }) => {
   };
 
   const swearWords = [
-    '시발', '씨발', '개새끼', '존나', '병신', '미친', '지랄', 
+    '시발', '씨발', '개새끼', '존나', '병신', '미친', '지랄',
     '호로', '엿먹', '꺼져', '빡치', '새끼', '샹놈', '썅'
   ];
 
-  const checkProfanity = (text) => {
-    return swearWords.some((word) => text.includes(word));
-  };
+  const checkProfanity = (text) => swearWords.some((word) => text.includes(word));
 
   const handleSubmit = (e) => {
     e.preventDefault();
@@ -77,18 +74,9 @@ const ReviewWriter = ({ restaurantId, onBack }) => {
       return;
     }
 
-    addReview(restaurant.id, {
-      rating,
-      content,
-      images,
-      revisit
-    });
+    addReview(restaurant.id, { rating, content, images, revisit });
 
-    confetti({
-      particleCount: 80,
-      spread: 60,
-      origin: { y: 0.6 }
-    });
+    confetti({ particleCount: 80, spread: 60, origin: { y: 0.6 } });
 
     onBack();
   };
@@ -98,156 +86,153 @@ const ReviewWriter = ({ restaurantId, onBack }) => {
 
   return (
     <div className="fade-in" style={{ display: 'flex', flexDirection: 'column', height: '100%' }}>
-      {/* Header Sticky Bar */}
+
+      {/* Sticky Header */}
       <div className="writer-header">
         <button className="header-icon-btn" onClick={onBack} id="writer-back-btn">
           <ChevronLeft size={20} />
         </button>
-        <span className="writer-header-title">{restaurant.name} 리뷰 작성</span>
-        <div style={{ width: '36px' }}></div>
+        <span className="writer-header-title">{restaurant.name} 리뷰</span>
+        <div style={{ width: '36px' }} />
       </div>
 
-      {/* Split Columns Form */}
-      <form className="split-layout" onSubmit={handleSubmit} style={{ flex: 1 }}>
-        
-        {/* Left Column: Ratings, Uploads & Revisit */}
-        <div className="split-left custom-scroll">
-          {/* Star selector */}
-          <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 6, padding: '8px 0', borderBottom: '1px solid var(--border-color)', width: '100%' }}>
-            <span style={{ fontSize: '12px', fontWeight: 700, color: 'var(--text-muted)' }}>이 밥집은 몇 점인가요?</span>
-            <div style={{ display: 'flex', gap: 6 }}>
-              {[1, 2, 3, 4, 5].map((star) => (
-                <button
-                  type="button"
-                  key={star}
-                  onClick={() => setRating(star)}
-                  style={{ background: 'none', border: 'none', cursor: 'pointer' }}
-                  id={`rating-star-${star}`}
-                >
-                  <Star
-                    size={28}
-                    fill={star <= rating ? '#FFB800' : 'none'}
-                    color={star <= rating ? '#FFB800' : 'var(--border-color)'}
-                  />
-                </button>
-              ))}
-            </div>
-          </div>
-
-          {/* Photo Uploader */}
-          <div className="uploader-section" style={{ borderBottom: '1px solid var(--border-color)', paddingBottom: '16px', width: '100%' }}>
-            <span className="uploader-label">사진 첨부 (최대 3장)</span>
-            <div className="uploader-row" style={{ marginTop: '6px' }}>
-              {images.length < 3 && (
-                <div 
-                  className="uploader-btn-trigger" 
-                  onClick={() => fileInputRef.current.click()}
-                  id="photo-upload-trigger"
-                  style={{ width: '64px', height: '64px' }}
-                >
-                  <Camera size={20} />
-                  <span>{images.length}/3</span>
-                </div>
-              )}
-              
-              <input
-                type="file"
-                accept="image/*"
-                multiple
-                ref={fileInputRef}
-                onChange={handlePhotoUpload}
-                style={{ display: 'none' }}
-              />
-
-              {images.map((imgUrl, index) => (
-                <div key={index} className="uploaded-thumb-wrapper" style={{ width: '64px', height: '64px' }}>
-                  <img src={imgUrl} alt={`업로드 이미지 ${index + 1}`} className="uploaded-thumb" />
-                  <button
-                    type="button"
-                    className="thumb-remove-btn"
-                    onClick={() => handleRemovePhoto(index)}
-                    id={`remove-photo-${index}`}
-                  >
-                    <X size={8} />
-                  </button>
-                </div>
-              ))}
-            </div>
-          </div>
-
-          {/* Revisit card option */}
-          <div className="revisit-section" style={{ width: '100%' }}>
-            <span className="uploader-label">재방문 의사가 있으신가요?</span>
-            <div className="revisit-options" style={{ marginTop: '6px' }}>
-              <div
-                className={`revisit-option-card yes ${revisit ? 'selected' : ''}`}
-                onClick={() => setRevisit(true)}
-                id="revisit-yes-card"
+      {/* Single-column scrollable form */}
+      <form
+        onSubmit={handleSubmit}
+        className="custom-scroll"
+        style={{ flex: 1, overflowY: 'auto', padding: '16px', display: 'flex', flexDirection: 'column', gap: 16 }}
+      >
+        {/* ── Star Rating ── */}
+        <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 8, padding: '12px 0', backgroundColor: 'var(--bg-card)', borderRadius: 16, boxShadow: 'var(--shadow-card)', border: '1px solid var(--border-color)' }}>
+          <span style={{ fontSize: '13px', fontWeight: 700, color: 'var(--text-muted)' }}>이 밥집은 몇 점인가요?</span>
+          <div style={{ display: 'flex', gap: 8 }}>
+            {[1, 2, 3, 4, 5].map((star) => (
+              <button
+                type="button"
+                key={star}
+                onClick={() => setRating(star)}
+                style={{ background: 'none', border: 'none', cursor: 'pointer' }}
+                id={`rating-star-${star}`}
               >
-                <ThumbsUp size={20} fill={revisit ? 'currentColor' : 'none'} />
-                <span>다시 올래요!</span>
-              </div>
-              <div
-                className={`revisit-option-card no ${!revisit ? 'selected' : ''}`}
-                onClick={() => setRevisit(false)}
-                id="revisit-no-card"
-              >
-                <ThumbsDown size={20} fill={!revisit ? 'currentColor' : 'none'} />
-                <span>이번만 갈래요</span>
-              </div>
-            </div>
+                <Star
+                  size={32}
+                  fill={star <= rating ? '#FFB800' : 'none'}
+                  color={star <= rating ? '#FFB800' : 'var(--border-color)'}
+                />
+              </button>
+            ))}
           </div>
         </div>
 
-        {/* Right Column: Content box, tags, and right-aligned submit */}
-        <div className="split-right custom-scroll">
-          <div className="writer-input-section">
-            <span className="uploader-label">리뷰 내용 작성</span>
-            <textarea
-              className="writer-textarea"
-              placeholder="음식의 맛, 양, 분위기 등에 대한 솔직한 후기를 남겨주세요. (최소 20자 이상)"
-              value={content}
-              onChange={(e) => setContent(e.target.value)}
-              id="review-content-textarea"
+        {/* ── Review Content ── */}
+        <div className="writer-input-section">
+          <span className="uploader-label">리뷰 내용 작성</span>
+          <textarea
+            className="writer-textarea"
+            placeholder="음식의 맛, 양, 분위기 등에 대한 솔직한 후기를 남겨주세요. (최소 20자 이상)"
+            value={content}
+            onChange={(e) => setContent(e.target.value)}
+            id="review-content-textarea"
+            style={{ minHeight: '100px' }}
+          />
+          <div className="writer-counter-row" style={{ marginTop: '4px' }}>
+            <span style={{ color: 'var(--text-muted)', fontSize: '10px' }}>공백 포함 최소 20자</span>
+            <span className={`writer-counter ${isContentValid ? 'valid' : 'invalid'}`}>
+              {charCount} / 20자
+            </span>
+          </div>
+        </div>
+
+        {/* ── Quick Preset Tags ── */}
+        <div className="quick-tags-section">
+          <span className="quick-tags-title">💡 자주 쓰이는 예시 문구 (클릭하여 입력)</span>
+          <div className="quick-tags-list" style={{ marginTop: '6px' }}>
+            {presetTags.map((tag) => (
+              <button
+                type="button"
+                key={tag}
+                className="quick-tag-pill"
+                onClick={() => handleAppendTag(tag)}
+                id={`preset-tag-${tag.replace(/\s+/g, '-')}`}
+              >
+                {tag}
+              </button>
+            ))}
+          </div>
+        </div>
+
+        {/* ── Photo Uploader ── */}
+        <div className="uploader-section">
+          <span className="uploader-label">사진 첨부 (최대 3장)</span>
+          <div className="uploader-row" style={{ marginTop: '6px' }}>
+            {images.length < 3 && (
+              <div
+                className="uploader-btn-trigger"
+                onClick={() => fileInputRef.current.click()}
+                id="photo-upload-trigger"
+                style={{ width: '72px', height: '72px' }}
+              >
+                <Camera size={20} />
+                <span>{images.length}/3</span>
+              </div>
+            )}
+            <input
+              type="file"
+              accept="image/*"
+              multiple
+              ref={fileInputRef}
+              onChange={handlePhotoUpload}
+              style={{ display: 'none' }}
             />
-            <div className="writer-counter-row" style={{ marginTop: '4px' }}>
-              <span style={{ color: 'var(--text-muted)', fontSize: '10px' }}>공백 포함 최소 20자</span>
-              <span className={`writer-counter ${isContentValid ? 'valid' : 'invalid'}`}>
-                {charCount} / 20자
-              </span>
-            </div>
-          </div>
-
-          {/* Preset quick suggestions */}
-          <div className="quick-tags-section" style={{ marginTop: '10px' }}>
-            <span className="quick-tags-title">💡 자주 쓰이는 예시 문구 (클릭하여 입력)</span>
-            <div className="quick-tags-list" style={{ marginTop: '6px' }}>
-              {presetTags.map((tag) => (
+            {images.map((imgUrl, index) => (
+              <div key={index} className="uploaded-thumb-wrapper" style={{ width: '72px', height: '72px' }}>
+                <img src={imgUrl} alt={`업로드 이미지 ${index + 1}`} className="uploaded-thumb" />
                 <button
                   type="button"
-                  key={tag}
-                  className="quick-tag-pill"
-                  onClick={() => handleAppendTag(tag)}
-                  id={`preset-tag-${tag.replace(/\s+/g, '-')}`}
+                  className="thumb-remove-btn"
+                  onClick={() => handleRemovePhoto(index)}
+                  id={`remove-photo-${index}`}
                 >
-                  {tag}
+                  <X size={8} />
                 </button>
-              ))}
-            </div>
-          </div>
-
-          {/* Right aligned submit button */}
-          <div className="writer-action-row" style={{ marginTop: 'auto', paddingTop: '16px' }}>
-            <button
-              type="submit"
-              className="submit-btn"
-              disabled={!isContentValid}
-              id="submit-review-btn"
-            >
-              리뷰 등록하기
-            </button>
+              </div>
+            ))}
           </div>
         </div>
+
+        {/* ── Revisit Option ── */}
+        <div className="revisit-section">
+          <span className="uploader-label">재방문 의사가 있으신가요?</span>
+          <div className="revisit-options" style={{ marginTop: '8px' }}>
+            <div
+              className={`revisit-option-card yes ${revisit ? 'selected' : ''}`}
+              onClick={() => setRevisit(true)}
+              id="revisit-yes-card"
+            >
+              <ThumbsUp size={20} fill={revisit ? 'currentColor' : 'none'} />
+              <span>다시 올래요!</span>
+            </div>
+            <div
+              className={`revisit-option-card no ${!revisit ? 'selected' : ''}`}
+              onClick={() => setRevisit(false)}
+              id="revisit-no-card"
+            >
+              <ThumbsDown size={20} fill={!revisit ? 'currentColor' : 'none'} />
+              <span>이번만 갈래요</span>
+            </div>
+          </div>
+        </div>
+
+        {/* ── Submit ── */}
+        <button
+          type="submit"
+          className="submit-btn"
+          disabled={!isContentValid}
+          id="submit-review-btn"
+          style={{ marginTop: 'auto' }}
+        >
+          리뷰 등록하기
+        </button>
       </form>
 
       {/* Warning popup alert */}

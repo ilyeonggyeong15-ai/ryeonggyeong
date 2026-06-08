@@ -1,53 +1,246 @@
-import React from 'react';
-import { Star, Trash2, ThumbsUp, ThumbsDown, Flame } from 'lucide-react';
+import React, { useState } from 'react';
+import { Star, Trash2, ThumbsUp, ThumbsDown, Flame, Edit3, Check, X } from 'lucide-react';
 import { useApp } from '../context/AppContext';
 
+const GRADES = ['1학년', '2학년', '3학년', '4학년'];
+
 const MyPageScreen = ({ onSelectRestaurant }) => {
-  const { user, getUserReviews, deleteReview } = useApp();
+  const { user, getUserReviews, deleteReview, updateProfile } = useApp();
   const myReviews = getUserReviews();
 
+  // Profile editing state
+  const [isEditing, setIsEditing] = useState(false);
+  const [draft, setDraft] = useState({
+    nickname: user.nickname || user.name,
+    grade: user.grade || '1학년',
+  });
+
+  const handleEdit = () => {
+    setDraft({ nickname: user.nickname || user.name, grade: user.grade || '1학년' });
+    setIsEditing(true);
+  };
+
+  const handleSave = () => {
+    if (!draft.nickname.trim()) return;
+    updateProfile({ nickname: draft.nickname.trim(), grade: draft.grade });
+    setIsEditing(false);
+  };
+
+  const handleCancel = () => {
+    setIsEditing(false);
+  };
+
   const handleDelete = (e, restaurantId, reviewId) => {
-    e.stopPropagation(); // Stop navigation click
+    e.stopPropagation();
     if (window.confirm('정말 이 리뷰를 삭제하시겠습니까?')) {
       deleteReview(restaurantId, reviewId);
     }
   };
 
   return (
-    <div className="split-layout" style={{ height: '100%' }}>
-      {/* Left Column: Profile Card */}
-      <div className="split-left" style={{ 
-        background: 'linear-gradient(180deg, var(--primary-light) 0%, var(--bg-main) 100%)',
-        justifyContent: 'center',
-        alignItems: 'center',
-        textAlign: 'center'
-      }}>
-        <div className="profile-avatar-huge">
-          {user.avatar}
-        </div>
-        <h2 className="profile-name">{user.name}</h2>
-        <p className="profile-sub">{user.university}</p>
-        <p style={{ fontSize: '11px', color: 'var(--text-muted)', fontWeight: 600, marginTop: '2px' }}>
-          {user.department}
-        </p>
+    <div className="fade-in" style={{ display: 'flex', flexDirection: 'column', minHeight: '100%' }}>
 
-        {/* Statistics grid row */}
-        <div className="profile-stats-row" style={{ marginTop: '20px', width: '100%', maxWidth: '240px' }}>
-          <div className="stat-item" style={{ flex: 1 }}>
-            <span className="stat-val">{myReviews.length}개</span>
-            <span className="stat-lbl">남긴 리뷰</span>
+      {/* ─── Profile Card ─── */}
+      <div style={{
+        background: 'linear-gradient(145deg, var(--primary-light) 0%, #ffffff 100%)',
+        padding: '20px 16px 16px',
+        borderBottom: '1px solid var(--border-color)',
+      }}>
+        <div style={{ display: 'flex', alignItems: 'center', gap: 16 }}>
+          {/* Avatar bubble */}
+          <div style={{
+            width: 60,
+            height: 60,
+            borderRadius: '50%',
+            background: 'linear-gradient(135deg, var(--primary) 0%, #4D94FF 100%)',
+            display: 'flex',
+            alignItems: 'center',
+            justifyContent: 'center',
+            fontSize: 24,
+            flexShrink: 0,
+            boxShadow: '0 4px 12px rgba(0,102,255,0.2)',
+          }}>
+            {(user.nickname || user.name)?.[0] || '냠'}
           </div>
-          <div style={{ width: '1px', backgroundColor: 'var(--border-color)' }}></div>
-          <div className="stat-item" style={{ flex: 1 }}>
-            <span className="stat-val">{user.favoriteCategory}</span>
-            <span className="stat-lbl">최애 분야</span>
+
+          {/* Profile info or edit form */}
+          <div style={{ flex: 1, minWidth: 0 }}>
+            {isEditing ? (
+              <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
+                {/* Nickname input */}
+                <input
+                  id="profile-nickname-input"
+                  type="text"
+                  value={draft.nickname}
+                  onChange={(e) => setDraft((d) => ({ ...d, nickname: e.target.value }))}
+                  maxLength={16}
+                  placeholder="닉네임을 입력하세요"
+                  style={{
+                    border: '1.5px solid var(--primary)',
+                    borderRadius: 10,
+                    padding: '6px 10px',
+                    fontSize: 14,
+                    fontFamily: 'inherit',
+                    fontWeight: 700,
+                    outline: 'none',
+                    width: '100%',
+                    backgroundColor: 'white',
+                  }}
+                />
+
+                {/* University (locked) */}
+                <div style={{
+                  border: '1px solid var(--border-color)',
+                  borderRadius: 10,
+                  padding: '6px 10px',
+                  fontSize: 13,
+                  fontWeight: 600,
+                  color: 'var(--text-muted)',
+                  backgroundColor: 'var(--bg-main)',
+                  display: 'flex',
+                  alignItems: 'center',
+                  gap: 6,
+                }}>
+                  <span>🏫</span>
+                  <span>{user.university}</span>
+                  <span style={{ fontSize: 10, color: 'var(--text-muted)', marginLeft: 'auto' }}>변경 불가</span>
+                </div>
+
+                {/* Grade select */}
+                <select
+                  id="profile-grade-select"
+                  value={draft.grade}
+                  onChange={(e) => setDraft((d) => ({ ...d, grade: e.target.value }))}
+                  style={{
+                    border: '1.5px solid var(--primary)',
+                    borderRadius: 10,
+                    padding: '6px 10px',
+                    fontSize: 13,
+                    fontFamily: 'inherit',
+                    fontWeight: 600,
+                    outline: 'none',
+                    width: '100%',
+                    backgroundColor: 'white',
+                    color: 'var(--text-main)',
+                    cursor: 'pointer',
+                  }}
+                >
+                  {GRADES.map((g) => (
+                    <option key={g} value={g}>{g}</option>
+                  ))}
+                </select>
+
+                {/* Action row */}
+                <div style={{ display: 'flex', gap: 8 }}>
+                  <button
+                    id="profile-save-btn"
+                    onClick={handleSave}
+                    style={{
+                      flex: 1,
+                      padding: '8px',
+                      backgroundColor: 'var(--primary)',
+                      color: 'white',
+                      border: 'none',
+                      borderRadius: 10,
+                      fontFamily: 'inherit',
+                      fontWeight: 700,
+                      fontSize: 13,
+                      cursor: 'pointer',
+                      display: 'flex',
+                      alignItems: 'center',
+                      justifyContent: 'center',
+                      gap: 4,
+                    }}
+                  >
+                    <Check size={14} /> 저장
+                  </button>
+                  <button
+                    id="profile-cancel-btn"
+                    onClick={handleCancel}
+                    style={{
+                      flex: 1,
+                      padding: '8px',
+                      backgroundColor: 'var(--bg-main)',
+                      color: 'var(--text-muted)',
+                      border: '1px solid var(--border-color)',
+                      borderRadius: 10,
+                      fontFamily: 'inherit',
+                      fontWeight: 700,
+                      fontSize: 13,
+                      cursor: 'pointer',
+                      display: 'flex',
+                      alignItems: 'center',
+                      justifyContent: 'center',
+                      gap: 4,
+                    }}
+                  >
+                    <X size={14} /> 취소
+                  </button>
+                </div>
+              </div>
+            ) : (
+              <div>
+                <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
+                  <span style={{ fontSize: 17, fontWeight: 800, color: 'var(--text-main)' }}>
+                    {user.nickname || user.name}
+                  </span>
+                  <button
+                    id="profile-edit-btn"
+                    onClick={handleEdit}
+                    style={{
+                      background: 'none',
+                      border: 'none',
+                      color: 'var(--primary)',
+                      cursor: 'pointer',
+                      display: 'flex',
+                      alignItems: 'center',
+                      padding: 2,
+                    }}
+                    title="프로필 수정"
+                  >
+                    <Edit3 size={15} />
+                  </button>
+                </div>
+                <div style={{ fontSize: 12, color: 'var(--text-muted)', fontWeight: 600, marginTop: 2 }}>
+                  🏫 {user.university} · {user.grade}
+                </div>
+              </div>
+            )}
           </div>
         </div>
+
+        {/* Stats row */}
+        {!isEditing && (
+          <div style={{
+            display: 'flex',
+            gap: 10,
+            marginTop: 14,
+            padding: '10px 0',
+            borderTop: '1px solid var(--border-color)',
+          }}>
+            <div style={{ flex: 1, textAlign: 'center' }}>
+              <div style={{ fontSize: 18, fontWeight: 800, color: 'var(--primary)' }}>{myReviews.length}</div>
+              <div style={{ fontSize: 11, color: 'var(--text-muted)', fontWeight: 600 }}>리뷰</div>
+            </div>
+            <div style={{ width: 1, backgroundColor: 'var(--border-color)' }} />
+            <div style={{ flex: 1, textAlign: 'center' }}>
+              <div style={{ fontSize: 18, fontWeight: 800, color: 'var(--primary)' }}>{user.favoriteCategory}</div>
+              <div style={{ fontSize: 11, color: 'var(--text-muted)', fontWeight: 600 }}>최애 분야</div>
+            </div>
+            <div style={{ width: 1, backgroundColor: 'var(--border-color)' }} />
+            <div style={{ flex: 1, textAlign: 'center' }}>
+              <div style={{ fontSize: 18, fontWeight: 800, color: 'var(--primary)' }}>{user.grade?.[0] || '?'}</div>
+              <div style={{ fontSize: 11, color: 'var(--text-muted)', fontWeight: 600 }}>학년</div>
+            </div>
+          </div>
+        )}
       </div>
 
-      {/* Right Column: User Reviews list scroll */}
-      <div className="split-right custom-scroll">
-        <h3 className="my-reviews-title-row">내가 작성한 리뷰 모음</h3>
+      {/* ─── Review List ─── */}
+      <div style={{ flex: 1, padding: '12px 14px 80px' }}>
+        <h3 style={{ fontSize: 14, fontWeight: 800, color: 'var(--text-main)', marginBottom: 10 }}>
+          내가 작성한 리뷰 {myReviews.length > 0 ? `(${myReviews.length})` : ''}
+        </h3>
 
         <div className="my-reviews-list">
           {myReviews.length > 0 ? (
@@ -83,7 +276,6 @@ const MyPageScreen = ({ onSelectRestaurant }) => {
                   </button>
                 </div>
 
-                {/* Stars and revisit tag */}
                 <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
                   <div style={{ display: 'flex', alignItems: 'center', gap: 2 }}>
                     {[1, 2, 3, 4, 5].map((star) => (
@@ -118,7 +310,6 @@ const MyPageScreen = ({ onSelectRestaurant }) => {
                   {rev.content}
                 </p>
 
-                {/* Image attachments */}
                 {rev.images && rev.images.length > 0 && (
                   <div className="review-images-row" style={{ marginTop: 2 }}>
                     {rev.images.map((img, idx) => (
@@ -137,17 +328,16 @@ const MyPageScreen = ({ onSelectRestaurant }) => {
                   </div>
                 )}
 
-                {/* Footer details */}
-                <div style={{ 
-                  display: 'flex', 
-                  justifyContent: 'space-between', 
-                  alignItems: 'center', 
-                  fontSize: '10px', 
-                  color: 'var(--text-muted)', 
-                  fontWeight: 600, 
-                  borderTop: '1px dashed var(--border-color)', 
-                  paddingTop: 6, 
-                  marginTop: 2 
+                <div style={{
+                  display: 'flex',
+                  justifyContent: 'space-between',
+                  alignItems: 'center',
+                  fontSize: '10px',
+                  color: 'var(--text-muted)',
+                  fontWeight: 600,
+                  borderTop: '1px dashed var(--border-color)',
+                  paddingTop: 6,
+                  marginTop: 2
                 }}>
                   <span>작성일: {rev.date}</span>
                   <div style={{ display: 'flex', alignItems: 'center', gap: 2 }}>

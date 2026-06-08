@@ -18,45 +18,23 @@ const MobileShell = ({ children, activeTab, setActiveTab, hideNavBar }) => {
 
   return (
     <div className="app-container fade-in">
-      {/* Top Browser / Application Frame Status Bar */}
+      {/* Phone Status Bar */}
       <div className="status-bar">
-        <div style={{ display: 'flex', alignItems: 'center', gap: 12 }}>
-          <span style={{ color: 'var(--primary)', fontWeight: 800 }}>● 냠냠스쿨</span>
-          <span style={{ color: 'var(--text-muted)', fontSize: '12px' }}>{time}</span>
-        </div>
-        
-        {/* Mock browser address bar indicating the university campus coordinates */}
-        <div style={{ 
-          backgroundColor: 'var(--bg-main)', 
-          padding: '4px 20px', 
-          borderRadius: '12px', 
-          fontSize: '11px', 
-          color: 'var(--text-muted)', 
-          border: '1px solid var(--border-color)', 
-          width: '280px', 
-          textAlign: 'center',
-          fontWeight: 600,
-          display: 'inline-block',
-          overflow: 'hidden',
-          textOverflow: 'ellipsis',
-          whiteSpace: 'nowrap'
-        }}>
-          https://yumyum.school/campus/busan-sashang
-        </div>
+        <span style={{ fontWeight: 800, fontSize: '14px', color: 'var(--text-main)' }}>{time}</span>
 
         <div className="status-bar-icons">
-          <Signal size={14} fill="currentColor" strokeWidth={1} />
-          <Wifi size={14} />
-          <Battery size={16} fill="currentColor" strokeWidth={1.5} />
+          <Signal size={13} fill="currentColor" strokeWidth={1} />
+          <Wifi size={13} />
+          <Battery size={15} fill="currentColor" strokeWidth={1.5} />
         </div>
       </div>
 
-      {/* 16:9 Main View Content Area */}
+      {/* Main scrollable content area */}
       <div className="screen-content custom-scroll">
         {children}
       </div>
 
-      {/* Bottom Widescreen Navigation tabs */}
+      {/* Bottom Phone Tab Navigation */}
       {activeTab !== 'start' && !hideNavBar && (
         <div className="nav-bar">
           <button
@@ -64,16 +42,16 @@ const MobileShell = ({ children, activeTab, setActiveTab, hideNavBar }) => {
             onClick={() => setActiveTab('home')}
             id="nav-btn-home"
           >
-            <Home size={18} />
-            <span>홈 피드</span>
+            <Home size={20} />
+            <span>홈</span>
           </button>
           <button
             className={`nav-item ${activeTab === 'mypage' ? 'active' : ''}`}
             onClick={() => setActiveTab('mypage')}
             id="nav-btn-mypage"
           >
-            <User size={18} />
-            <span>마이 냠냠</span>
+            <User size={20} />
+            <span>마이냠냠</span>
           </button>
         </div>
       )}
